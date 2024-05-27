@@ -1,0 +1,16 @@
+[package]
+name = "historical-open"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[dependencies.windows]
+version = "0.56"
+features = [
+    "Win32_Graphics_Gdi",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_UI_Controls_Dialogs",
+    "Win32_UI_WindowsAndMessaging",
+]
