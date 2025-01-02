@@ -1,3 +1,5 @@
+use std::ffi::c_void;
+
 use windows::core::{PWSTR, w};
 use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
@@ -52,10 +54,10 @@ unsafe extern "system" fn window_proc(window_handle: HWND, message: u32, wparam:
             w!("Windows 2000/ME"),
             w!("Windows Vista"),
         ];
-        let module_instance_handle = HINSTANCE(unsafe { GetWindowLongPtrW(window_handle, GWLP_HINSTANCE) });
+        let module_instance_handle = HINSTANCE(unsafe { GetWindowLongPtrW(window_handle, GWLP_HINSTANCE) } as *mut c_void);
         for (i, button_label) in buttons.iter().enumerate() {
             let y_pos = i32::try_from(i).unwrap() * 100;
-            let button_handle = unsafe {
+            let button_handle_res = unsafe {
                 CreateWindowExW(
                     WINDOW_EX_STYLE(0),
                     w!("BUTTON"),
@@ -63,13 +65,13 @@ unsafe extern "system" fn window_proc(window_handle: HWND, message: u32, wparam:
                     WINDOW_STYLE(BS_PUSHBUTTON.try_into().unwrap()) | WS_CHILD | WS_TABSTOP | WS_VISIBLE,
                     10, 10 + y_pos, 300, 90,
                     window_handle,
-                    HMENU((i + 1).try_into().unwrap()),
+                    HMENU((i + 1) as *mut c_void),
                     module_instance_handle,
                     None,
                 )
             };
-            if button_handle.0 == 0 {
-                panic!("failed to create button with index {}: {}", i, windows::core::Error::from_win32());
+            if let Err(e) = button_handle_res {
+                panic!("failed to create button with index {}: {}", i, e);
             }
         }
         LRESULT(0)
@@ -125,7 +127,7 @@ fn main() {
     }
 
     let window_name = w!("Open File Dialogs");
-    let window_handle = unsafe {
+    let window_handle_res = unsafe {
         CreateWindowExW(
             WINDOW_EX_STYLE(0),
             class_name,
@@ -138,9 +140,10 @@ fn main() {
             None,
         )
     };
-    if window_handle.0 == 0 {
-        panic!("failed to create window: {}", windows::core::Error::from_win32());
-    }
+    let window_handle = match window_handle_res {
+        Ok(wh) => wh,
+        Err(e) => panic!("failed to create window: {}", e),
+    };
 
     let _ = unsafe { ShowWindow(window_handle, show_window_cmd) };
 
